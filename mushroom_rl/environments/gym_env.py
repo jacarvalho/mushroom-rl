@@ -21,7 +21,8 @@ class Gym(Environment):
     are managed in a separate class.
 
     """
-    def __init__(self, name, horizon, gamma, **env_args):
+    def __init__(self, name, horizon, gamma, wrappers=None, wrappers_args=None,
+                 **env_args):
         """
         Constructor.
 
@@ -29,6 +30,12 @@ class Gym(Environment):
              name (str): gym id of the environment;
              horizon (int): the horizon;
              gamma (float): the discount factor;
+             wrappers (list): list of wrappers to apply over the environment.
+                 It is possible to pass arguments to the wrappers by providing
+                 a tuple with two elements: the gym wrapper class and a
+                 dictionary containing the parameters needed by the wrapper
+                 constructor;
+            wrappers_args (list): list of list of arguments for each wrapper;
              **env_args: other gym environment parameters.
 
         """
@@ -58,6 +65,13 @@ class Gym(Environment):
             self._convert_action = lambda a: a
 
         super().__init__(mdp_info)
+
+        if wrappers is not None:
+            for wrapper, args in zip(wrappers, wrappers_args):
+                if isinstance(wrapper, tuple):
+                    self.env = wrapper[0](self.env, *args, **wrapper[1])
+                else:
+                    self.env = wrapper(self.env, *args, **env_args)
 
     def reset(self, state=None):
         if state is None:
