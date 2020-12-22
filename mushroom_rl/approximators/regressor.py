@@ -40,7 +40,7 @@ class Regressor(Serializable):
             **params: other parameters to create each model.
 
         """
-        if not approximator.__module__.startswith(('sklearn', 'cuml')):
+        if not approximator.__module__.startswith(('sklearn', 'cuml', 'skmultiflow')):
             params['input_shape'] = input_shape
             params['output_shape'] = output_shape
 
