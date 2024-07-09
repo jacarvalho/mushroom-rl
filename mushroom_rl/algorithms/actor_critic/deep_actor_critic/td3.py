@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 
 from mushroom_rl.algorithms.actor_critic.deep_actor_critic import DDPG
 from mushroom_rl.policy import Policy
@@ -60,6 +61,9 @@ class TD3(DDPG):
             _noise_clip='mushroom'
         )
 
+        self.action_space_low_torch = torch.from_numpy(self.mdp_info.action_space.low)
+        self.action_space_high_torch = torch.from_numpy(self.mdp_info.action_space.high)
+
     def _loss(self, state):
         action = self._actor_approximator(state, **self._actor_predict_params)
         q = self._critic_approximator(state, action, idx=0, **self._critic_predict_params)
@@ -79,16 +83,14 @@ class TD3(DDPG):
             action returned by the actor.
 
         """
-        a = self._target_actor_approximator(next_state, **self._actor_predict_params)
+        a = self._target_actor_approximator.predict(next_state, **self._actor_predict_params)
 
-        low = self.mdp_info.action_space.low
-        high = self.mdp_info.action_space.high
-        eps = np.random.normal(scale=self._noise_std(), size=a.shape)
-        eps_clipped = np.clip(eps, -self._noise_clip(), self._noise_clip.get_value())
-        a_smoothed = np.clip(a + eps_clipped, low, high)
+        eps = self._noise_std() * torch.randn(size=a.shape)
+        eps_clipped = torch.clip(eps, -self._noise_clip(), self._noise_clip())
+        a_smoothed = torch.clip(a + eps_clipped, self.action_space_low_torch, self.action_space_high_torch)
 
         q = self._target_critic_approximator.predict(next_state, a_smoothed,
                                                      prediction='min', **self._critic_predict_params)
-        q *= 1 - absorbing
+        q *= ~absorbing
 
         return q
