@@ -183,8 +183,8 @@ class SACPolicy(Policy):
         return chain(self._mu_approximator.model.network.parameters(),
                      self._sigma_approximator.model.network.parameters())
     
-    def eval(self):
-        self.deterministic = True
+    def eval(self, deterministic=False):
+        self.deterministic = deterministic
 
     def train(self):
         self.deterministic = False
@@ -342,8 +342,8 @@ class SAC(DeepAC):
     def _alpha(self):
         return self._log_alpha.exp()
     
-    def eval(self):
-        self.policy.eval()
+    def eval(self, deterministic=False):
+        self.policy.eval(deterministic)
 
 
     def train(self):
