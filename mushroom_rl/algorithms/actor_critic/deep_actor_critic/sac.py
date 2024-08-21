@@ -289,9 +289,6 @@ class SAC(DeepAC):
             if self._replay_memory.size > self._warmup_transitions():
                 action_new, log_prob = self.policy.compute_action_and_log_prob_t(state)
                 loss = self._loss(state, action_new, log_prob)
-                if self.loss_extra_actor is not None:
-                    loss_extra = self.loss_extra_actor()
-                    loss += loss_extra
                 self._optimize_actor_parameters(loss)
                 self._update_alpha(log_prob.detach())
 
@@ -308,7 +305,12 @@ class SAC(DeepAC):
 
         q = torch.min(q_0, q_1)
 
-        return (self._alpha * log_prob - q).mean()
+        loss = (self._alpha * log_prob - q).mean()
+        if self.loss_extra_actor is not None:
+            loss_extra = self.loss_extra_actor()
+            loss += loss_extra
+
+        return loss
 
     def _update_alpha(self, log_prob):
         if self._use_log_alpha_loss:
