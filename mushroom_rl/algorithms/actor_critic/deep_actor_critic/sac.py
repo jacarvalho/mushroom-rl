@@ -199,7 +199,8 @@ class SAC(DeepAC):
     """
     def __init__(self, mdp_info, actor_mu_params, actor_sigma_params, actor_optimizer, critic_params, batch_size,
                  initial_replay_size, max_replay_size, warmup_transitions, tau, lr_alpha, use_log_alpha_loss=False,
-                 log_std_min=-20, log_std_max=2, target_entropy=None, critic_fit_params=None):
+                 log_std_min=-20, log_std_max=2, target_entropy=None, critic_fit_params=None,
+                 loss_extra_actor=None):
         """
         Constructor.
 
@@ -259,6 +260,8 @@ class SAC(DeepAC):
 
         policy_parameters = chain(actor_mu_approximator.model.network.parameters(),
                                   actor_sigma_approximator.model.network.parameters())
+        
+        self.loss_extra_actor = loss_extra_actor
 
         super().__init__(mdp_info, policy, actor_optimizer, policy_parameters)
 
@@ -286,6 +289,9 @@ class SAC(DeepAC):
             if self._replay_memory.size > self._warmup_transitions():
                 action_new, log_prob = self.policy.compute_action_and_log_prob_t(state)
                 loss = self._loss(state, action_new, log_prob)
+                if self.loss_extra_actor is not None:
+                    loss_extra = self.loss_extra_actor()
+                    loss += loss_extra
                 self._optimize_actor_parameters(loss)
                 self._update_alpha(log_prob.detach())
 
