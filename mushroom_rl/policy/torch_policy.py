@@ -203,7 +203,11 @@ class GaussianTorchPolicy(TorchPolicy):
             _log_sigma='torch'
         )
 
+        self.deterministic = False
+
     def draw_action_t(self, state):
+        if self.deterministic:
+            return self._mu(state, **self._predict_params)
         return self.distribution_t(state).sample().detach()
 
     def log_prob_t(self, state, action):
@@ -235,6 +239,12 @@ class GaussianTorchPolicy(TorchPolicy):
 
     def parameters(self):
         return chain(self._mu.model.network.parameters(), [self._log_sigma])
+
+    def eval(self, deterministic=False):
+        self.deterministic = True
+
+    def train(self):
+        self.deterministic = False
 
 
 class BoltzmannTorchPolicy(TorchPolicy):
