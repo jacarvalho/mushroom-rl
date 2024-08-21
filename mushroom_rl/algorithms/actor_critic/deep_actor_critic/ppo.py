@@ -21,7 +21,9 @@ class PPO(OnPolicyDeepAC):
     """
     def __init__(self, mdp_info, policy, actor_optimizer, critic_params,
                  n_epochs_policy, batch_size, eps_ppo, lam, ent_coeff=0.0,
-                 critic_fit_params=None):
+                 critic_fit_params=None,
+                 loss_extra_actor=None
+                 ):
         """
         Constructor.
 
@@ -59,6 +61,8 @@ class PPO(OnPolicyDeepAC):
         self.logging_loss = 0
         self.logging_verr = 0
         self.logging_kl = 0
+
+        self.loss_extra_actor = loss_extra_actor
 
         super().__init__(mdp_info, policy, backend='torch')
 
@@ -106,11 +110,15 @@ class PPO(OnPolicyDeepAC):
                 clipped_ratio = torch.clamp(prob_ratio, 1 - self._eps_ppo(), 1 + self._eps_ppo.get_value())
                 loss = -torch.mean(torch.min(prob_ratio * adv_i, clipped_ratio * adv_i))
                 loss -= self._ent_coeff() * self.policy.entropy_t(obs_i)
+                if self.loss_extra_actor is not None:
+                    loss_extra = self.loss_extra_actor()
+                    loss += loss_extra
                 loss.backward()
                 losses.append(loss.detach().cpu().numpy())
                 self._optimizer.step()
-        #running mean of the loss
-        self.logging_loss = np.mean(losses) #if self.logging_loss == 0 else 0.9 * self.logging_loss + 0.1 * np.mean(losses)
+        # running mean of the loss
+        # self.logging_loss = np.mean(losses) if self.logging_loss == 0 else 0.9 * self.logging_loss + 0.1 * np.mean(losses)
+        self.logging_loss = np.mean(losses)
 
     def _log_info(self, dataset, x, v_target, old_pol_dist):
         with torch.no_grad():
