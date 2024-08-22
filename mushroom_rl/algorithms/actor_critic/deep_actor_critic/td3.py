@@ -16,7 +16,8 @@ class TD3(DDPG):
     def __init__(self, mdp_info, policy_class, policy_params, actor_params,
                  actor_optimizer, critic_params, batch_size,
                  initial_replay_size, max_replay_size, tau, policy_delay=2,
-                 noise_std=.2, noise_clip=.5, critic_fit_params=None):
+                 noise_std=.2, noise_clip=.5, critic_fit_params=None,
+                 loss_extra_actor=None):
         """
         Constructor.
 
@@ -53,6 +54,8 @@ class TD3(DDPG):
         else:
             critic_params['n_models'] = 2
 
+        self.loss_extra_actor = loss_extra_actor
+
         super().__init__(mdp_info, policy_class, policy_params, actor_params, actor_optimizer, critic_params,
                          batch_size, initial_replay_size, max_replay_size, tau, policy_delay, critic_fit_params)
 
@@ -68,7 +71,12 @@ class TD3(DDPG):
         action = self._actor_approximator(state, **self._actor_predict_params)
         q = self._critic_approximator(state, action, idx=0, **self._critic_predict_params)
 
-        return -q.mean()
+        loss = -q.mean()
+        if self.loss_extra_actor is not None:
+                    loss_extra = self.loss_extra_actor()
+                    loss += loss_extra
+                    
+        return loss
 
     def _next_q(self, next_state, absorbing):
         """
