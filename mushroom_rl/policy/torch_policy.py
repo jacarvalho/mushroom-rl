@@ -207,7 +207,7 @@ class GaussianTorchPolicy(TorchPolicy):
 
     def draw_action_t(self, state):
         if self.deterministic:
-            return self._mu(state, **self._predict_params)
+            return self._mu(state, **self._predict_params).detach()
         return self.distribution_t(state).sample().detach()
 
     def log_prob_t(self, state, action):
