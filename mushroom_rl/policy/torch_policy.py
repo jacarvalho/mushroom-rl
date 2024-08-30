@@ -205,7 +205,7 @@ class GaussianTorchPolicy(TorchPolicy):
             _mu='mushroom',
             _predict_params='pickle',
             _log_sigma='torch',
-            _clip_log_sigma_fn='pickle'
+            _clip_log_sigma_fn='none',
         )
 
         self.deterministic = False

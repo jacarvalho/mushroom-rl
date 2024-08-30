@@ -144,7 +144,7 @@ class PPO(OnPolicyDeepAC):
                 self._logger.info(msg)
                 self._logger.weak_line()
 
-            self.logging_verr = logging_verr #if self.logging_verr == 0 else 0.9 * self.logging_verr + 0.1 * logging_verr
+            self.logging_verr = np.mean(logging_verr)  #if self.logging_verr == 0 else 0.9 * self.logging_verr + 0.1 * logging_verr
             self.logging_kl = logging_kl #if self.logging_kl == 0 else 0.9 * self.logging_kl + 0.1 * logging_kl
 
     def _post_load(self):
