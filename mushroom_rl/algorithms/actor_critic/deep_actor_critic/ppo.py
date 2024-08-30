@@ -63,6 +63,7 @@ class PPO(OnPolicyDeepAC):
         self.logging_kl = 0
 
         self.loss_extra_actor = loss_extra_actor
+        self.logging_extra_loss = 0 
 
         super().__init__(mdp_info, policy, backend='torch')
 
@@ -102,6 +103,7 @@ class PPO(OnPolicyDeepAC):
 
     def _update_policy(self, obs, act, adv, old_log_p):
         losses = []
+        extra_losses = []
         for epoch in range(self._n_epochs_policy()):
             for obs_i, act_i, adv_i, old_log_p_i in minibatch_generator(
                     self._batch_size(), obs, act, adv, old_log_p):
@@ -112,6 +114,7 @@ class PPO(OnPolicyDeepAC):
                 loss -= self._ent_coeff() * self.policy.entropy_t(obs_i)
                 if self.loss_extra_actor is not None:
                     loss_extra = self.loss_extra_actor()
+                    extra_losses.append(loss_extra.detach().cpu().numpy())
                     loss += loss_extra
                 loss.backward()
                 losses.append(loss.detach().cpu().numpy())
@@ -119,6 +122,7 @@ class PPO(OnPolicyDeepAC):
         # running mean of the loss
         # self.logging_loss = np.mean(losses) if self.logging_loss == 0 else 0.9 * self.logging_loss + 0.1 * np.mean(losses)
         self.logging_loss = np.mean(losses)
+        self.logging_extra_loss = np.mean(extra_losses)
 
     def _log_info(self, dataset, x, v_target, old_pol_dist):
         with torch.no_grad():
