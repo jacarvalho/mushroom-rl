@@ -200,18 +200,21 @@ class GaussianTorchPolicy(TorchPolicy):
 
         self._clip_log_sigma_fn = clip_log_sigma_fn 
 
+        self._deterministic = False
+
         self._add_save_attr(
             _action_dim='primitive',
             _mu='mushroom',
             _predict_params='pickle',
             _log_sigma='torch',
             _clip_log_sigma_fn='none',
+            _deterministic='primitive'
         )
 
-        self.deterministic = False
+        
 
     def draw_action_t(self, state):
-        if self.deterministic:
+        if self._deterministic:
             return self._mu(state, **self._predict_params).detach()
         return self.distribution_t(state).sample().detach()
 
@@ -247,10 +250,10 @@ class GaussianTorchPolicy(TorchPolicy):
         return chain(self._mu.model.network.parameters(), [self._log_sigma])
 
     def eval(self, deterministic=False):
-        self.deterministic = True
+        self._deterministic = True
 
     def train(self):
-        self.deterministic = False
+        self._deterministic = False
 
 
 class BoltzmannTorchPolicy(TorchPolicy):
