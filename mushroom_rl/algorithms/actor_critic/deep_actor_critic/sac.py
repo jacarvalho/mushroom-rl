@@ -49,7 +49,7 @@ class SACPolicy(Policy):
 
         self._eps_log_prob = 1e-6
 
-        self.deterministic = False
+        self._deterministic = False
 
         self._add_save_attr(
             _mu_approximator='mushroom',
@@ -58,14 +58,15 @@ class SACPolicy(Policy):
             _central_a='torch',
             _log_std_min='mushroom',
             _log_std_max='mushroom',
-            _eps_log_prob='primitive'
+            _eps_log_prob='primitive',
+            _deterministic='primitive'
         )
 
     def __call__(self, state, action, internal_state=None):
         raise NotImplementedError
 
     def draw_action(self, state, internal_state=None):
-        if self.deterministic:
+        if self._deterministic:
             return self.draw_action_deterministic(state, internal_state)
         return self.compute_action_and_log_prob_t(state, compute_log_prob=False).detach(), None
     
@@ -184,10 +185,10 @@ class SACPolicy(Policy):
                      self._sigma_approximator.model.network.parameters())
     
     def eval(self, deterministic=False):
-        self.deterministic = deterministic
+        self._deterministic = deterministic
 
     def train(self):
-        self.deterministic = False
+        self._deterministic = False
 
 
 class SAC(DeepAC):

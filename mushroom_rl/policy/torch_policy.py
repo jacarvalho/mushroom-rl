@@ -2,6 +2,7 @@ import numpy as np
 
 import torch
 import torch.nn as nn
+from torch.functional import F
 
 from mushroom_rl.policy import Policy
 from mushroom_rl.approximators import Regressor
@@ -172,7 +173,7 @@ class GaussianTorchPolicy(TorchPolicy):
     deviation. The standard deviation is not state-dependent.
 
     """
-    def __init__(self, network, input_shape, output_shape, std_0=1., policy_state_shape=None, **params):
+    def __init__(self, network, input_shape, output_shape, std_0=1., clip_log_sigma_fn = None, policy_state_shape=None, **params):
         """
         Constructor.
 
@@ -182,6 +183,7 @@ class GaussianTorchPolicy(TorchPolicy):
             input_shape (tuple): the shape of the state space;
             output_shape (tuple): the shape of the action space;
             std_0 (float, 1.): initial standard deviation;
+            clip_log_sigma_fn (callable, None): function to clip log_sigma.
             params (dict): parameters used by the network constructor.
 
         """
@@ -196,17 +198,23 @@ class GaussianTorchPolicy(TorchPolicy):
 
         self._log_sigma = nn.Parameter(log_sigma_init)
 
+        self._clip_log_sigma_fn = clip_log_sigma_fn 
+
+        self._deterministic = False
+
         self._add_save_attr(
             _action_dim='primitive',
             _mu='mushroom',
             _predict_params='pickle',
-            _log_sigma='torch'
+            _log_sigma='torch',
+            _clip_log_sigma_fn='none',
+            _deterministic='primitive'
         )
 
-        self.deterministic = False
+        
 
     def draw_action_t(self, state):
-        if self.deterministic:
+        if self._deterministic:
             return self._mu(state, **self._predict_params).detach()
         return self.distribution_t(state).sample().detach()
 
@@ -222,9 +230,10 @@ class GaussianTorchPolicy(TorchPolicy):
         return torch.distributions.MultivariateNormal(loc=mu, scale_tril=chol_sigma, validate_args=False)
 
     def get_mean_and_chol(self, state):
-        assert torch.all(torch.exp(self._log_sigma) > 0)
-        return self._mu(state, **self._predict_params), torch.diag(torch.exp(self._log_sigma))
-
+        log_sigma = self._clip_log_sigma_fn(self._log_sigma) if self._clip_log_sigma_fn is not None else self._log_sigma
+        assert torch.all(torch.exp(log_sigma) > 0)
+        return self._mu(state, **self._predict_params), torch.diag(torch.exp(log_sigma))
+    
     def set_weights(self, weights):
         log_sigma_data = TorchUtils.to_float_tensor(weights[-self._action_dim:])
         self._log_sigma.data = log_sigma_data
@@ -241,10 +250,10 @@ class GaussianTorchPolicy(TorchPolicy):
         return chain(self._mu.model.network.parameters(), [self._log_sigma])
 
     def eval(self, deterministic=False):
-        self.deterministic = True
+        self._deterministic = True
 
     def train(self):
-        self.deterministic = False
+        self._deterministic = False
 
 
 class BoltzmannTorchPolicy(TorchPolicy):
