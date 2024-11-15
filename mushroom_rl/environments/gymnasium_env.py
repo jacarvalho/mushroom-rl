@@ -13,7 +13,8 @@ from mushroom_rl.core import Environment, MDPInfo
 from mushroom_rl.rl_utils.spaces import *
 from mushroom_rl.utils.viewer import ImageViewer
 
-gym.logger.set_level(40)
+# gym.logger.set_level(40)
+gym.logger.min_level = 40
 
 
 class Gymnasium(Environment):
