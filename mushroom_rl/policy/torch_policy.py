@@ -39,7 +39,7 @@ class TorchPolicy(Policy):
 
     def draw_action(self, state, policy_state=None):
         with torch.no_grad():
-            s = TorchUtils.to_float_tensor(torch.atleast_2d(state))
+            s = torch.atleast_2d(TorchUtils.to_float_tensor(state))
             a = self.draw_action_t(s)
 
         return torch.squeeze(a, dim=0).detach(), None
