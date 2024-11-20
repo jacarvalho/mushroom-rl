@@ -211,8 +211,6 @@ class GaussianTorchPolicy(TorchPolicy):
             _deterministic='primitive'
         )
 
-        
-
     def draw_action_t(self, state):
         if self._deterministic:
             return self._mu(state, **self._predict_params).detach()
